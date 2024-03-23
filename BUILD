@@ -6,6 +6,7 @@ cc_library(
     ),
     hdrs = glob(["include/*.h"]),
     includes = ["include"],
+    deps = ["@yaml-cpp//:yaml-cpp"],
 )
 
 cc_binary(

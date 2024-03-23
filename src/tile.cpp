@@ -5,24 +5,6 @@
 
 namespace
 {
-    std::optional<std::string> nextNonEmptyLine(std::istream &in)
-    {
-        std::string line;
-        do
-        {
-            std::getline(in, line);
-            if (!in)
-            {
-                throw std::runtime_error("Could not read line");
-            }
-            if (in.eof())
-            {
-                return std::nullopt;
-            }
-        } while (line.empty());
-        return line;
-    }
-
     const std::unordered_map<char, Terrain> charToTerrain = {
         {'_', Terrain::Grass},
         {'P', Terrain::Plains},
@@ -31,52 +13,45 @@ namespace
         {'R', Terrain::Rail},
         {'W', Terrain::River},
     };
+
+    auto parseEdges(const std::string &edgeChars) -> std::array<Terrain, Tile::ROTATIONS>
+    {
+        std::array<Terrain, Tile::ROTATIONS> edges;
+        if (edgeChars.size() != Tile::ROTATIONS)
+        {
+            throw std::runtime_error("expected " + std::to_string(Tile::ROTATIONS) + " chars, but got: " + edgeChars);
+        }
+        for (int i = 0; i < Tile::ROTATIONS; i++)
+        {
+            char c = edgeChars[i];
+            if (auto it = charToTerrain.find(c); it == charToTerrain.end())
+            {
+                throw std::runtime_error("unexpected terrain: " + std::string(c, 1));
+            }
+            else
+            {
+                edges[i] = it->second;
+            }
+        }
+        return edges;
+    }
 }
 
-std::optional<Tile> Tile::fromIStream(std::istream &in)
+Tile Tile::fromYaml(const YAML::Node &node)
 {
-    std::array<Terrain, ROTATIONS> edges;
-
-    auto optionalLine = nextNonEmptyLine(in);
-    if (!optionalLine)
+    if (node.Type() != YAML::NodeType::Map)
     {
-        return std::nullopt;
+        throw std::runtime_error("expected a yaml map while reading a tile");
     }
-    std::string tileType = *optionalLine;
-
-    auto nextLine = [&tileType, &in]()
+    if (auto tileType = node["type"].as<std::string>(); tileType == "land")
     {
-        auto optionalLine = nextNonEmptyLine(in);
-        if (!optionalLine)
-        {
-            throw std::runtime_error("eof encountered while reading " + tileType);
-        }
-        return *optionalLine;
-    };
-    std::string edgeChars = nextLine();
-    if (edgeChars.size() != Tile::ROTATIONS)
-    {
-        throw std::runtime_error("expected " + std::to_string(Tile::ROTATIONS) + " chars, but got: " + edgeChars);
+        const std::array<Terrain, ROTATIONS> edges = parseEdges(node["edges"].as<std::string>());
+        return Tile(edges);
     }
-    for (int i = 0; i < Tile::ROTATIONS; i++)
+    else
     {
-        char c = edgeChars[i];
-        if (auto it = charToTerrain.find(c); it == charToTerrain.end())
-        {
-            throw std::runtime_error("unexpected terrain: " + std::string(c, 1));
-        }
-        else
-        {
-            edges[i] = it->second;
-        }
+        throw std::runtime_error("unknown tile type: " + tileType);
     }
-    int n_features = std::stoi(nextLine());
-    for (int i = 0; i < n_features; i++)
-    {
-        std::string feature = nextLine();
-    }
-
-    return Tile(edges);
 }
 
 Tile::Tile(const std::array<Terrain, ROTATIONS> &edges)

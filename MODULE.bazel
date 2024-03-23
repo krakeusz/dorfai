@@ -4,3 +4,7 @@
 #
 # For more details, please check https://github.com/bazelbuild/bazel/issues/18958
 ###############################################################################
+
+module(name = "dorfai", version = "0.1")
+
+bazel_dep(name = "yaml-cpp", version = "0.8.0")

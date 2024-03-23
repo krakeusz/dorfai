@@ -4,6 +4,8 @@
 #include <istream>
 #include <optional>
 
+#include "yaml-cpp/yaml.h"
+
 enum class Terrain
 {
     Grass,
@@ -17,7 +19,7 @@ enum class Terrain
 class Tile
 {
 public:
-    static std::optional<Tile> fromIStream(std::istream &in);
+    static Tile fromYaml(const YAML::Node &node);
     static const int ROTATIONS = 6;
 
 private:
