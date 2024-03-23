@@ -16,3 +16,12 @@ cc_binary(
         ":dorfai",
     ],
 )
+
+cc_test(
+    name = "unit_test",
+    srcs = glob(["tests/test_*.cpp"]),
+    deps = [
+        ":dorfai",
+        "@catch2//:catch2_main",
+    ],
+)

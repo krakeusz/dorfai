@@ -22,6 +22,8 @@ public:
     static Tile fromYaml(const YAML::Node &node);
     static const int ROTATIONS = 6;
 
+    Terrain getEdgeAt(int position) const { return m_edges.at(position); }
+
 private:
     Tile(const std::array<Terrain, ROTATIONS> &edges);
     int m_rotation = 0;
