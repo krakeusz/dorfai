@@ -39,3 +39,7 @@ bazel-testlogs
 
 # IDE
 .vscode
+compile_commands.json
+
+# Installation
+install/
