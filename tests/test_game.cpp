@@ -6,15 +6,14 @@
 
 TEST_CASE("CanReadTwoTiles")
 {
-    const char *yaml = R"(tiles:
+  const char *yaml = R"(tiles:
         - edges: 'F__F__'
-          type: land
         - edges: 'R_RW_W'
-          type: land
     )";
-    YAML::Node tileNode = YAML::Load(yaml);
-    const auto game = Game::fromYaml(tileNode);
-    REQUIRE(game.getTiles().size() == 2);
-    REQUIRE(game.getTiles().at(0).getEdgeAt(0) == Terrain::Forest);
-    REQUIRE(game.getTiles().at(1).getEdgeAt(0) == Terrain::Rail);
+  YAML::Node tileNode = YAML::Load(yaml);
+  const auto game = Game::fromYaml(tileNode);
+  REQUIRE(game.getLands().size() == 2);
+  REQUIRE(game.getLands().at(0).getEdgeAt(0) == Terrain::Forest);
+  REQUIRE(game.getLands().at(1).getEdgeAt(0) == Terrain::Rail);
+  REQUIRE(game.getTasks().empty());
 }

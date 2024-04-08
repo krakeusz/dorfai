@@ -14,7 +14,15 @@ Game Game::fromYaml(const YAML::Node &rootNode)
     Game game;
     for (const auto &tile : tiles)
     {
-        game.m_tiles.push_back(Tile::fromYaml(tile));
+        auto the_tile = Tile::fromYaml(tile);
+        if (the_tile.isLand())
+        {
+            game.m_lands.push_back(the_tile);
+        }
+        else if (the_tile.isTask())
+        {
+            game.m_tasks.push_back(the_tile);
+        }
     }
     return game;
 }

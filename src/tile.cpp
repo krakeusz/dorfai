@@ -14,6 +14,18 @@ namespace
         {'W', Terrain::River},
     };
 
+    auto getTerrain(char c) -> Terrain
+    {
+        if (auto it = charToTerrain.find(c); it == charToTerrain.end())
+        {
+            throw std::runtime_error("unexpected terrain: " + std::string(c, 1));
+        }
+        else
+        {
+            return it->second;
+        }
+    }
+
     auto parseEdges(const std::string &edgeChars) -> std::array<Terrain, Tile::ROTATIONS>
     {
         std::array<Terrain, Tile::ROTATIONS> edges;
@@ -23,15 +35,7 @@ namespace
         }
         for (int i = 0; i < Tile::ROTATIONS; i++)
         {
-            char c = edgeChars[i];
-            if (auto it = charToTerrain.find(c); it == charToTerrain.end())
-            {
-                throw std::runtime_error("unexpected terrain: " + std::string(c, 1));
-            }
-            else
-            {
-                edges[i] = it->second;
-            }
+            edges[i] = getTerrain(edgeChars[i]);
         }
         return edges;
     }
@@ -43,16 +47,24 @@ Tile Tile::fromYaml(const YAML::Node &node)
     {
         throw std::runtime_error("expected a yaml map while reading a tile");
     }
-    if (auto tileType = node["type"].as<std::string>(); tileType == "land")
+    const std::array<Terrain, ROTATIONS> edges = parseEdges(node["edges"].as<std::string>());
+    if (node["task"])
     {
-        const std::array<Terrain, ROTATIONS> edges = parseEdges(node["edges"].as<std::string>());
-        return Tile(edges);
+        auto task = node["task"].as<std::string>();
+        if (task.size() != 1)
+        {
+            throw std::runtime_error("unknown task: " + task);
+        }
+        return Tile(edges, getTerrain(task[0]));
     }
     else
     {
-        throw std::runtime_error("unknown tile type: " + tileType);
+        return Tile(edges);
     }
 }
 
 Tile::Tile(const std::array<Terrain, ROTATIONS> &edges)
     : m_edges(edges) {}
+
+Tile::Tile(const std::array<Terrain, ROTATIONS> &edges, Terrain task)
+    : m_edges(edges), m_task(task) {}

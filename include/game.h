@@ -12,8 +12,10 @@ class Game
 public:
     static Game fromYaml(const YAML::Node &rootNode);
 
-    auto getTiles() const -> const std::vector<Tile> & { return m_tiles; }
+    auto getLands() const -> const std::vector<Tile> & { return m_lands; }
+    auto getTasks() const -> const std::vector<Tile> & { return m_tasks; }
 
 private:
-    std::vector<Tile> m_tiles;
+    std::vector<Tile> m_lands;
+    std::vector<Tile> m_tasks;
 };

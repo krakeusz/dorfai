@@ -1,5 +1,0 @@
-tiles:
-  - edges: "F__F__"
-    type: land
-  - edges: "R_RW_W"
-    type: land

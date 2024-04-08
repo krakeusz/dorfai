@@ -30,6 +30,6 @@ int main(int argc, char **argv)
     Args args = parseArgs(argc, argv);
     YAML::Node rootNode = YAML::LoadFile(args.tilesYamlPath);
     Game game = Game::fromYaml(rootNode);
-    std::cout << "Game loaded! There are " << game.getTiles().size() << " tiles." << std::endl;
+    std::cout << "Game loaded! There are " << game.getLands().size() << " lands and " << game.getTasks().size() << " tasks." << std::endl;
     return 0;
 }

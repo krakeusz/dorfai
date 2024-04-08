@@ -6,7 +6,7 @@
 
 TEST_CASE("CanReadSimpleTile")
 {
-    YAML::Node tileNode = YAML::Load("edges: 'R_RW_W'\ntype: land");
+    YAML::Node tileNode = YAML::Load("edges: 'R_RW_W'\n");
     const auto tile = Tile::fromYaml(tileNode);
     REQUIRE(tile.getEdgeAt(0) == Terrain::Rail);
     REQUIRE(tile.getEdgeAt(1) == Terrain::Grass);
