@@ -5,6 +5,7 @@
 
 #include "yaml-cpp/yaml.h"
 
+#include "board.h"
 #include "tile.h"
 
 class Game
@@ -18,4 +19,5 @@ public:
 private:
     std::vector<Tile> m_lands;
     std::vector<Tile> m_tasks;
+    Board m_board;
 };
