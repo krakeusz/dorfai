@@ -68,3 +68,16 @@ Tile::Tile(const std::array<Terrain, ROTATIONS> &edges)
 
 Tile::Tile(const std::array<Terrain, ROTATIONS> &edges, Terrain task)
     : m_edges(edges), m_task(task) {}
+
+bool areTerrainsCompatible(Terrain t1, Terrain t2)
+{
+    if (t1 == Terrain::Rail || t2 == Terrain::Rail)
+    {
+        return t1 == t2;
+    }
+    if (t1 == Terrain::River || t2 == Terrain::River)
+    {
+        return t1 == t2;
+    }
+    return true;
+}

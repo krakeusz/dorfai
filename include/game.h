@@ -13,6 +13,9 @@ class Game
 public:
     static Game fromYaml(const YAML::Node &rootNode);
 
+    bool canPlaceTileAt(const Tile &tile, CellId position, int rotation) const;
+    void placeTileAt(const Tile &tile, CellId position, int rotation);
+
     auto getLands() const -> const std::vector<Tile> & { return m_lands; }
     auto getTasks() const -> const std::vector<Tile> & { return m_tasks; }
 

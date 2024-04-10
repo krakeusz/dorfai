@@ -1,28 +1,49 @@
 #include "board.h"
 
+#include <algorithm>
 #include <cassert>
+#include <ostream>
 
-namespace
+auto Board::getPotentialNeighbors(CellId id) -> std::array<CellId, Tile::ROTATIONS>
 {
-    std::array<CellId, Tile::ROTATIONS> getPotentialNeighbors(CellId id)
+    // offset coordinates, "odd-q" vertical layout, shoves odd columns down
+    // https://www.redblobgames.com/grids/hexagons/#coordinates-offset
+    std::array<CellId, Tile::ROTATIONS> deltas;
+    if (id.x % 2 == 0)
     {
-        // offset coordinates, "odd-q" vertical layout, shoves odd columns down
-        // https://www.redblobgames.com/grids/hexagons/#coordinates-offset
-        std::array<CellId, Tile::ROTATIONS> deltas;
-        if (id.x % 2 == 0)
-        {
-            deltas = std::array<CellId, Tile::ROTATIONS>{{{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {0, 1}, {-1, 0}}};
-        }
-        else
-        {
-            deltas = std::array<CellId, Tile::ROTATIONS>{{{-1, 0}, {0, 1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}}};
-        }
-        for (auto &delta : deltas)
-        {
-            delta = delta + id;
-        }
-        return deltas;
+        deltas = std::array<CellId, Tile::ROTATIONS>{{{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {0, 1}, {-1, 0}}};
     }
+    else
+    {
+        deltas = std::array<CellId, Tile::ROTATIONS>{{{-1, 0}, {0, 1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}}};
+    }
+    for (auto &delta : deltas)
+    {
+        delta = delta + id;
+    }
+    return deltas;
+}
+
+bool Board::areNeighbors(CellId lhs, CellId rhs)
+{
+    auto neighbors = getPotentialNeighbors(lhs);
+    return std::any_of(neighbors.begin(), neighbors.end(), [rhs](CellId id)
+                       { return id == rhs; });
+}
+
+auto Board::getEdge(CellId adjacent1, CellId adjacent2) -> std::pair<int, int>
+{
+    auto neighbors = getPotentialNeighbors(adjacent1);
+    auto the_neighbor_it = std::find(neighbors.begin(), neighbors.end(), adjacent2);
+    if (the_neighbor_it == neighbors.end())
+    {
+        std::ostringstream oss;
+        oss << "getEdge(" << adjacent1 << ", " << adjacent2 << ") was called for non-adjacent tiles!";
+        throw std::runtime_error(oss.str());
+    }
+    int direction1 = std::distance(neighbors.begin(), the_neighbor_it);
+    int direction2 = (direction1 + Tile::ROTATIONS / 2) % Tile::ROTATIONS;
+    return std::make_pair(direction1, direction2);
 }
 
 bool Board::hasTileAt(CellId id) const
@@ -76,4 +97,9 @@ bool CellId::operator==(const CellId &other) const
 CellId operator+(const CellId &lhs, const CellId &rhs)
 {
     return CellId{lhs.x + rhs.x, lhs.y + rhs.y};
+}
+
+std::ostream &operator<<(std::ostream &out, const CellId &cellId)
+{
+    return out << "(" << cellId.x << ", " << cellId.y << ")";
 }

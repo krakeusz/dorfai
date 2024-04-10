@@ -16,6 +16,8 @@ enum class Terrain
     River,
 };
 
+bool areTerrainsCompatible(Terrain t1, Terrain t2);
+
 class Tile
 {
 public:
@@ -27,8 +29,8 @@ public:
     static Tile fromYaml(const YAML::Node &node);
 
     Terrain getEdgeAt(int position) const { return m_edges.at(position); }
-    bool isLand() { return !m_task.has_value(); }
-    bool isTask() { return m_task.has_value(); }
+    bool isLand() const { return !m_task.has_value(); }
+    bool isTask() const { return m_task.has_value(); }
 
 private:
     const std::array<Terrain, ROTATIONS> m_edges;

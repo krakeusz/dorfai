@@ -7,4 +7,7 @@
 ```
 To regenerate compile_commands.json:
 $ bazel-compile-commands
+To compile with debug flags:
+$ bazel build -c dbg //:unit_test
 ```
+

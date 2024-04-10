@@ -1,6 +1,8 @@
 #pragma once
 
+#include <iosfwd>
 #include <unordered_map>
+#include <utility>
 
 #include "tile.h"
 
@@ -13,6 +15,7 @@ struct CellId
 };
 
 CellId operator+(const CellId &lhs, const CellId &rhs);
+std::ostream &operator<<(std::ostream &out, const CellId &cellId);
 
 template <>
 struct std::hash<CellId>
@@ -40,6 +43,13 @@ public:
     void putAt(CellId id, const Tile &tile, int rotation);
     auto getNeighbors(CellId id) const -> std::vector<PlacedTile>;
     auto getEmptyNeighbors(CellId id) const -> std::vector<CellId>;
+    bool isEmpty() const { return m_tiles.empty(); }
+
+    static auto getPotentialNeighbors(CellId id) -> std::array<CellId, Tile::ROTATIONS>;
+    static bool areNeighbors(CellId lhs, CellId rhs);
+
+    // Finds (rotation1, rotation2) of adjacent tiles, aka which rotation/edge of each tile is adjacent to the other one.
+    static auto getEdge(CellId adjacent1, CellId adjacent2) -> std::pair<int, int>;
 
 private:
     std::unordered_map<CellId, PlacedTile> m_tiles;
