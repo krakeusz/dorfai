@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <iosfwd>
 #include <istream>
 #include <optional>
 
@@ -15,8 +16,11 @@ enum class Terrain
     Rail,
     River,
 };
+std::ostream &operator<<(std::ostream &out, const Terrain &terrain);
 
 bool areTerrainsCompatible(Terrain t1, Terrain t2);
+auto getTerrainFromChar(char c) -> Terrain;
+auto getTerrainFromString(const std::string &s) -> Terrain;
 
 class Tile
 {
@@ -31,6 +35,7 @@ public:
     Terrain getEdgeAt(int position) const { return m_edges.at(position); }
     bool isLand() const { return !m_task.has_value(); }
     bool isTask() const { return m_task.has_value(); }
+    Terrain getTask() const { return *m_task; }
 
 private:
     const std::array<Terrain, ROTATIONS> m_edges;

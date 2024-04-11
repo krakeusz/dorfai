@@ -14,18 +14,6 @@ namespace
         {'W', Terrain::River},
     };
 
-    auto getTerrain(char c) -> Terrain
-    {
-        if (auto it = charToTerrain.find(c); it == charToTerrain.end())
-        {
-            throw std::runtime_error("unexpected terrain: " + std::string(c, 1));
-        }
-        else
-        {
-            return it->second;
-        }
-    }
-
     auto parseEdges(const std::string &edgeChars) -> std::array<Terrain, Tile::ROTATIONS>
     {
         std::array<Terrain, Tile::ROTATIONS> edges;
@@ -35,10 +23,31 @@ namespace
         }
         for (int i = 0; i < Tile::ROTATIONS; i++)
         {
-            edges[i] = getTerrain(edgeChars[i]);
+            edges[i] = getTerrainFromChar(edgeChars[i]);
         }
         return edges;
     }
+}
+
+auto getTerrainFromChar(char c) -> Terrain
+{
+    if (auto it = charToTerrain.find(c); it == charToTerrain.end())
+    {
+        throw std::runtime_error("unexpected terrain: " + std::string(c, 1));
+    }
+    else
+    {
+        return it->second;
+    }
+}
+
+auto getTerrainFromString(const std::string &s) -> Terrain
+{
+    if (s.size() != 1)
+    {
+        throw std::runtime_error("unknown terrain: \"" + s + "\"");
+    }
+    return getTerrainFromChar(s[0]);
 }
 
 Tile Tile::fromYaml(const YAML::Node &node)
@@ -51,11 +60,7 @@ Tile Tile::fromYaml(const YAML::Node &node)
     if (node["task"])
     {
         auto task = node["task"].as<std::string>();
-        if (task.size() != 1)
-        {
-            throw std::runtime_error("unknown task: " + task);
-        }
-        return Tile(edges, getTerrain(task[0]));
+        return Tile(edges, getTerrainFromString(task));
     }
     else
     {
@@ -68,6 +73,27 @@ Tile::Tile(const std::array<Terrain, ROTATIONS> &edges)
 
 Tile::Tile(const std::array<Terrain, ROTATIONS> &edges, Terrain task)
     : m_edges(edges), m_task(task) {}
+
+std::ostream &operator<<(std::ostream &out, const Terrain &terrain)
+{
+    switch (terrain)
+    {
+    case Terrain::Grass:
+        return out << "Grass";
+    case Terrain::Plains:
+        return out << "Plains";
+    case Terrain::Forest:
+        return out << "Forest";
+    case Terrain::Town:
+        return out << "Town";
+    case Terrain::Rail:
+        return out << "Rail";
+    case Terrain::River:
+        return out << "River";
+    default:
+        throw std::runtime_error("Unknown terrain: " + std::to_string(static_cast<int>(terrain)));
+    }
+}
 
 bool areTerrainsCompatible(Terrain t1, Terrain t2)
 {

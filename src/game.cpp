@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <sstream>
+
+#include "random.h"
 
 namespace
 {
@@ -19,30 +22,86 @@ namespace
     }
 }
 
-Game Game::fromYaml(const YAML::Node &rootNode)
+void Game::parseYamlTasks(const YAML::Node &rootNode)
 {
-    if (rootNode.Type() != YAML::NodeType::Map)
+    if (!rootNode["tasks"])
     {
-        throw std::runtime_error("expected map as a top-level yaml node");
+        return;
     }
+    const auto &tasks = rootNode["tasks"];
+    if (tasks.Type() != YAML::NodeType::Sequence)
+    {
+        throw std::runtime_error("expected tasks to be a sequence");
+    }
+    for (const auto &task : tasks)
+    {
+        if (task.Type() != YAML::NodeType::Map)
+        {
+            throw std::runtime_error("expected each of the tasks to be a map");
+        }
+        for (const auto &item : task)
+        {
+            const auto terrainStr = item.first.as<std::string>();
+            const Terrain terrain = getTerrainFromString(terrainStr);
+            const auto taskSize = item.second.as<int>();
+            m_freeTaskSizes.insert(std::make_pair(terrain, taskSize));
+        }
+    }
+}
+
+void Game::parseYamlTiles(const YAML::Node &rootNode)
+{
     const auto &tiles = rootNode["tiles"];
     if (tiles.Type() != YAML::NodeType::Sequence)
     {
         throw std::runtime_error("expected tiles to be a sequence");
     }
-    Game game;
+
     for (const auto &tile : tiles)
     {
         auto the_tile = Tile::fromYaml(tile);
         if (the_tile.isLand())
         {
-            game.m_lands.push_back(the_tile);
+            m_lands.push_back(the_tile);
         }
         else if (the_tile.isTask())
         {
-            game.m_tasks.push_back(the_tile);
+            m_tasks.push_back(the_tile);
         }
     }
+}
+
+int Game::fetchTaskSize(Terrain task)
+{
+    auto [beginIt, endIt] = m_freeTaskSizes.equal_range(task);
+    if (beginIt == endIt)
+    {
+        std::ostringstream oss;
+        oss << "No " << task << " tasks left, but one was required.";
+        throw std::runtime_error(oss.str());
+    }
+    std::vector<std::unordered_multimap<Terrain, int>::iterator> tasksToChooseFrom;
+    for (auto it = beginIt; it != endIt; it++)
+    {
+        tasksToChooseFrom.push_back(it);
+    }
+    int randomIndex = getRandom(std::uniform_int_distribution<int>(0, tasksToChooseFrom.size() - 1));
+    auto chosenIt = beginIt;
+    std::advance(chosenIt, randomIndex);
+    int taskSize = chosenIt->second;
+    m_freeTaskSizes.erase(chosenIt);
+    return taskSize;
+}
+
+Game Game::fromYaml(const YAML::Node &rootNode)
+{
+    Game game;
+    if (rootNode.Type() != YAML::NodeType::Map)
+    {
+        throw std::runtime_error("expected map as a top-level yaml node");
+    }
+    game.parseYamlTiles(rootNode);
+    game.parseYamlTasks(rootNode);
     return game;
 }
 
@@ -65,8 +124,17 @@ bool Game::canPlaceTileAt(const Tile &tile, CellId position, int rotation) const
     return true;
 }
 
-void Game::placeTileAt(const Tile &tile, CellId position, int rotation)
+void Game::placeTileAt(const Tile &tile, CellId position, int rotation, std::optional<int> taskSize)
 {
     assert(canPlaceTileAt(tile, position, rotation));
     m_board.putAt(position, tile, rotation);
+    if (tile.isTask())
+    {
+        if (!taskSize)
+        {
+            throw std::runtime_error("placeTileAt was called with a Task tile, but without task size");
+        }
+        m_currentTasks.push_back(Task{position, *taskSize, tile.getTask()});
+    }
+    // TODO next: Check if any tasks are finished
 }
