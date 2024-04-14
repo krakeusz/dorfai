@@ -41,7 +41,9 @@ public:
     bool hasTileAt(CellId id) const;
     PlacedTile getTileAt(CellId id) const;
     void putAt(CellId id, const Tile &tile, int rotation);
+    void removeAt(CellId id);
     auto getNeighbors(CellId id) const -> std::vector<PlacedTile>;
+    auto getNeighbor(CellId id, int absoluteDirection) const -> std::optional<PlacedTile>;
     auto getEmptyNeighbors(CellId id) const -> std::vector<CellId>;
     bool isEmpty() const { return m_tiles.empty(); }
 

@@ -63,6 +63,12 @@ void Board::putAt(CellId id, const Tile &tile, int rotation)
     m_tiles.insert(std::make_pair(id, PlacedTile{tile, id, rotation}));
 }
 
+void Board::removeAt(CellId id)
+{
+    assert(hasTileAt(id));
+    m_tiles.erase(id);
+}
+
 auto Board::getNeighbors(CellId id) const -> std::vector<PlacedTile>
 {
     std::vector<PlacedTile> neighbors;
@@ -74,6 +80,16 @@ auto Board::getNeighbors(CellId id) const -> std::vector<PlacedTile>
         }
     }
     return neighbors;
+}
+
+auto Board::getNeighbor(CellId id, int absoluteDirection) const -> std::optional<PlacedTile>
+{
+    auto allNeighbors = getPotentialNeighbors(id);
+    if (hasTileAt(allNeighbors[absoluteDirection]))
+    {
+        return getTileAt(allNeighbors[absoluteDirection]);
+    }
+    return std::nullopt;
 }
 
 auto Board::getEmptyNeighbors(CellId id) const -> std::vector<CellId>

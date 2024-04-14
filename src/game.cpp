@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 #include <sstream>
+#include <unordered_set>
+#include <queue>
 
 #include "random.h"
 
@@ -18,7 +20,51 @@ namespace
 
     int absoluteDirectionToTileDirection(int absoluteDirection, int placementRotation)
     {
+        // If a tile is placed with placementRotation, and the edge of the tile is directed to absoluteDirection in board coordinates,
+        // then return the index/direction of this edge in the original, non-rotated (prototype) tile.
         return (absoluteDirection + Tile::ROTATIONS - placementRotation) % Tile::ROTATIONS;
+    }
+
+    struct SearchResult
+    {
+        int terrainSize;
+        bool isClosed;
+    };
+
+    SearchResult searchConnectedTiles(const Board &b, Terrain terrain, CellId startPosition)
+    {
+        std::queue<CellId> tilesToVisit;
+        tilesToVisit.push(startPosition);
+        std::unordered_set<CellId> visitedTiles;
+        visitedTiles.insert(startPosition);
+        int terrainSize = 0;
+        bool isClosed = true;
+        while (!tilesToVisit.empty())
+        {
+            CellId position = tilesToVisit.front();
+            PlacedTile tile = b.getTileAt(position);
+            tilesToVisit.pop();
+            terrainSize++;
+            for (int r = 0; r < Tile::ROTATIONS; r++)
+            {
+                int edge = absoluteDirectionToTileDirection(r, tile.rotation);
+                if (tile.tile.getEdgeAt(edge) != terrain)
+                {
+                    continue;
+                }
+                std::optional<PlacedTile> neighbor = b.getNeighbor(position, r);
+                if (!neighbor)
+                {
+                    isClosed = false;
+                }
+                else if (visitedTiles.count(neighbor->id) == 0)
+                {
+                    tilesToVisit.push(neighbor->id);
+                    visitedTiles.insert(neighbor->id);
+                }
+            }
+        }
+        return SearchResult{terrainSize, isClosed};
     }
 }
 
@@ -49,7 +95,7 @@ void Game::parseYamlTasks(const YAML::Node &rootNode)
     }
 }
 
-void Game::parseYamlTiles(const YAML::Node &rootNode)
+void Game::parseYamlTiles(const YAML::Node &rootNode, bool shuffle)
 {
     const auto &tiles = rootNode["tiles"];
     if (tiles.Type() != YAML::NodeType::Sequence)
@@ -68,6 +114,11 @@ void Game::parseYamlTiles(const YAML::Node &rootNode)
         {
             m_tasks.push_back(the_tile);
         }
+    }
+    if (shuffle)
+    {
+        std::shuffle(m_lands.begin(), m_lands.end(), getRandomEngine());
+        std::shuffle(m_tasks.begin(), m_tasks.end(), getRandomEngine());
     }
 }
 
@@ -93,19 +144,46 @@ int Game::fetchTaskSize(Terrain task)
     return taskSize;
 }
 
-Game Game::fromYaml(const YAML::Node &rootNode)
+void Game::updateFinishedOrImpossibleTasks(CellId placedTileId)
+{
+    std::vector<Task> stillUnfinishedTasks;
+    // precondition: last move was legal
+    for (const Task &task : m_currentTasks)
+    {
+        SearchResult searchResult = searchConnectedTiles(m_board, task.terrain, task.position);
+        if (searchResult.terrainSize == task.size)
+        {
+            m_finishedTasks.push_back(task);
+        }
+        else if (searchResult.isClosed || searchResult.terrainSize > task.size)
+        {
+            // Since the last move was legal, it couldn't have been a Task.
+            // A task here would close another unfinished task.
+            assert(!m_board.getTileAt(placedTileId).tile.isTask());
+            // Task will be removed, but not finished.
+        }
+        else
+        {
+            assert(searchResult.terrainSize < task.size && !searchResult.isClosed);
+            stillUnfinishedTasks.push_back(task);
+        }
+    }
+    m_currentTasks = std::move(stillUnfinishedTasks);
+}
+
+Game Game::fromYaml(const YAML::Node &rootNode, bool shuffle)
 {
     Game game;
     if (rootNode.Type() != YAML::NodeType::Map)
     {
         throw std::runtime_error("expected map as a top-level yaml node");
     }
-    game.parseYamlTiles(rootNode);
+    game.parseYamlTiles(rootNode, shuffle);
     game.parseYamlTasks(rootNode);
     return game;
 }
 
-bool Game::canPlaceTileAt(const Tile &tile, CellId position, int rotation) const
+bool Game::canPlaceTileAt(const Tile &tile, CellId position, int rotation, std::optional<int> taskSize)
 {
     assert(isAdjacentToBoard(m_board, position) || m_board.isEmpty());
     for (PlacedTile tile2 : m_board.getNeighbors(position))
@@ -120,8 +198,36 @@ bool Game::canPlaceTileAt(const Tile &tile, CellId position, int rotation) const
             return false;
         }
     }
-    // TODO: check that all tasks are still possible to be completed
-    return true;
+    if (!taskSize)
+    {
+        // A land can close even an unfinished task.
+        return true;
+    }
+    // Cannot put a task tile which would prevent a task from finishing.
+    assert(tile.isTask());
+    m_board.putAt(position, tile, rotation);
+    m_currentTasks.push_back(Task{position, *taskSize, tile.getTask()});
+    bool canPlace = true;
+    for (const Task &task : m_currentTasks)
+    {
+        SearchResult searchResult = searchConnectedTiles(m_board, task.terrain, task.position);
+        if (searchResult.terrainSize == task.size)
+        {
+            // task would be completed, ok
+        }
+        else if (searchResult.isClosed || searchResult.terrainSize > task.size)
+        {
+            canPlace = false; // task would be impossible to finish
+        }
+        else
+        {
+            assert(searchResult.terrainSize < task.size && !searchResult.isClosed);
+            // not completed, but not blocked
+        }
+    }
+    m_currentTasks.pop_back();
+    m_board.removeAt(position);
+    return canPlace;
 }
 
 void Game::placeTileAt(const Tile &tile, CellId position, int rotation, std::optional<int> taskSize)
@@ -136,5 +242,18 @@ void Game::placeTileAt(const Tile &tile, CellId position, int rotation, std::opt
         }
         m_currentTasks.push_back(Task{position, *taskSize, tile.getTask()});
     }
-    // TODO next: Check if any tasks are finished
+    updateFinishedOrImpossibleTasks(position);
+}
+
+std::optional<Tile *> Game::takeNextTileToPlay()
+{
+    if (m_currentTasks.size() < MAX_CONCURRENT_TASKS && m_nextTaskIndex < static_cast<int>(m_tasks.size()))
+    {
+        return &m_tasks.at(m_nextTaskIndex++);
+    }
+    if (m_nextLandIndex < static_cast<int>(m_lands.size()) - UNUSED_LANDS)
+    {
+        return &m_lands.at(m_nextLandIndex++);
+    }
+    return std::nullopt; // No tiles left
 }

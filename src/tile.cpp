@@ -14,12 +14,12 @@ namespace
         {'W', Terrain::River},
     };
 
-    auto parseEdges(const std::string &edgeChars) -> std::array<Terrain, Tile::ROTATIONS>
+    auto parseEdges(std::string_view edgeChars) -> std::array<Terrain, Tile::ROTATIONS>
     {
         std::array<Terrain, Tile::ROTATIONS> edges;
         if (edgeChars.size() != Tile::ROTATIONS)
         {
-            throw std::runtime_error("expected " + std::to_string(Tile::ROTATIONS) + " chars, but got: " + edgeChars);
+            throw std::runtime_error("expected " + std::to_string(Tile::ROTATIONS) + " chars, but got: " + std::string(edgeChars));
         }
         for (int i = 0; i < Tile::ROTATIONS; i++)
         {
@@ -71,8 +71,17 @@ Tile Tile::fromYaml(const YAML::Node &node)
 Tile::Tile(const std::array<Terrain, ROTATIONS> &edges)
     : m_edges(edges) {}
 
+Tile::Tile(std::string_view edgeChars)
+{
+    m_edges = parseEdges(edgeChars);
+}
+
 Tile::Tile(const std::array<Terrain, ROTATIONS> &edges, Terrain task)
     : m_edges(edges), m_task(task) {}
+
+Tile::Tile(const Tile &other) : m_edges(other.m_edges), m_task(other.m_task)
+{
+}
 
 std::ostream &operator<<(std::ostream &out, const Terrain &terrain)
 {
@@ -91,7 +100,8 @@ std::ostream &operator<<(std::ostream &out, const Terrain &terrain)
     case Terrain::River:
         return out << "River";
     default:
-        throw std::runtime_error("Unknown terrain: " + std::to_string(static_cast<int>(terrain)));
+        return out << std::to_string(static_cast<int>(terrain));
+        // throw std::runtime_error("Unknown terrain: " + std::to_string(static_cast<int>(terrain)));
     }
 }
 
