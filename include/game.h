@@ -8,6 +8,7 @@
 #include "yaml-cpp/yaml.h"
 
 #include "board.h"
+#include "move.h"
 #include "tile.h"
 
 struct Task
@@ -26,11 +27,13 @@ public:
 
     bool canPlaceTileAt(const Tile &tile, CellId position, int rotation, std::optional<int> taskSize = std::nullopt);
     void placeTileAt(const Tile &tile, CellId position, int rotation, std::optional<int> taskSize = std::nullopt);
+    void makeMove(const Move& move);
 
     auto getLands() const -> const std::vector<Tile> & { return m_lands; }
     auto getTasks() const -> const std::vector<Tile> & { return m_tasks; }
     auto takeNextTileToPlay() -> std::optional<Tile *>; // non-owning, the tile will live as long as the game
     int fetchTaskSize(Terrain task);
+    std::vector<Move> nextMoves(); // takes next tile, so do not call twice
 
 private:
     std::vector<Tile> m_lands; // TODO: there are so many references to these tiles. Make m_lands const.

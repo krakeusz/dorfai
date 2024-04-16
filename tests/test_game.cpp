@@ -4,6 +4,8 @@
 
 #include "game.h"
 
+#include <iostream>
+
 TEST_CASE("CanReadTwoTiles")
 {
   const char *yaml = R"(tiles:
@@ -76,4 +78,17 @@ TEST_CASE("CanOrCannotFinishTask")
 TEST_CASE("CheckFirstFourMoveTypes")
 {
   // TODO: take, assert task, play, repeat x3. Take, assert land.
+  YAML::Node rootNode = YAML::LoadFile(TILES_YAML);
+  Game game = Game::fromYaml(rootNode);
+
+  for (int i = 0; i < 3; i++)
+  {
+    std::vector<Move> nextMoves = game.nextMoves();
+    REQUIRE(!nextMoves.empty());
+    REQUIRE(nextMoves[0].tile->isTask());
+    game.makeMove(nextMoves[0]);
+  }
+  std::vector<Move> nextMoves = game.nextMoves();
+  REQUIRE(!nextMoves.empty());
+  REQUIRE(nextMoves[0].tile->isLand());
 }

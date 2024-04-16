@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <ostream>
+#include <set>
 
 auto Board::getPotentialNeighbors(CellId id) -> std::array<CellId, Tile::ROTATIONS>
 {
@@ -105,9 +106,31 @@ auto Board::getEmptyNeighbors(CellId id) const -> std::vector<CellId>
     return neighbors;
 }
 
+auto Board::getPlacesForNextTile() const -> std::vector<CellId>
+{
+    std::set<CellId> places;
+    for (const auto &it : m_tiles)
+    {
+        for (const CellId pos : getEmptyNeighbors(it.first))
+        {
+            places.insert(pos);
+        }
+    }
+    if (places.empty()) // no tiles, first move?
+    {
+        places.insert(CellId{0, 0});
+    }
+    return std::vector<CellId>(places.begin(), places.end());
+}
+
 bool CellId::operator==(const CellId &other) const
 {
     return x == other.x && y == other.y;
+}
+
+bool CellId::operator<(const CellId &other) const
+{
+    return (x == other.x ? y < other.y : x < other.x);
 }
 
 CellId operator+(const CellId &lhs, const CellId &rhs)

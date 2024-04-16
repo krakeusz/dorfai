@@ -12,6 +12,7 @@ struct CellId
     int y;
 
     bool operator==(const CellId &other) const;
+    bool operator<(const CellId &other) const;
 };
 
 CellId operator+(const CellId &lhs, const CellId &rhs);
@@ -46,6 +47,7 @@ public:
     auto getNeighbor(CellId id, int absoluteDirection) const -> std::optional<PlacedTile>;
     auto getEmptyNeighbors(CellId id) const -> std::vector<CellId>;
     bool isEmpty() const { return m_tiles.empty(); }
+    auto getPlacesForNextTile() const -> std::vector<CellId>;
 
     static auto getPotentialNeighbors(CellId id) -> std::array<CellId, Tile::ROTATIONS>;
     static bool areNeighbors(CellId lhs, CellId rhs);

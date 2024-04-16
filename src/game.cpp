@@ -144,6 +144,31 @@ int Game::fetchTaskSize(Terrain task)
     return taskSize;
 }
 
+std::vector<Move> Game::nextMoves()
+{
+    auto optionalTile = takeNextTileToPlay();
+    if (!optionalTile)
+    {
+        return std::vector<Move>{}; // no tiles left to play, game over
+    }
+    Tile *nextTile = *optionalTile;
+    std::vector<CellId>
+        placesToPutTile = m_board.getPlacesForNextTile();
+    std::vector<Move> possibleMoves;
+    std::optional<int> taskSize = nextTile->isTask() ? std::make_optional(fetchTaskSize(nextTile->getTask())) : std::nullopt;
+    for (CellId position : placesToPutTile)
+    {
+        for (int rotation = 0; rotation < Tile::ROTATIONS; rotation++)
+        {
+            if (canPlaceTileAt(*nextTile, position, rotation, taskSize))
+            {
+                possibleMoves.push_back(Move{nextTile, position, rotation, taskSize});
+            }
+        }
+    }
+    return possibleMoves;
+}
+
 void Game::updateFinishedOrImpossibleTasks(CellId placedTileId)
 {
     std::vector<Task> stillUnfinishedTasks;
@@ -243,6 +268,11 @@ void Game::placeTileAt(const Tile &tile, CellId position, int rotation, std::opt
         m_currentTasks.push_back(Task{position, *taskSize, tile.getTask()});
     }
     updateFinishedOrImpossibleTasks(position);
+}
+
+void Game::makeMove(const Move &move)
+{
+    placeTileAt(*move.tile, move.position, move.rotation, move.taskSize);
 }
 
 std::optional<Tile *> Game::takeNextTileToPlay()
