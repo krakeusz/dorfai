@@ -48,6 +48,7 @@ public:
     auto getEmptyNeighbors(CellId id) const -> std::vector<CellId>;
     bool isEmpty() const { return m_tiles.empty(); }
     auto getPlacesForNextTile() const -> std::vector<CellId>;
+    auto getTiles() const -> std::unordered_map<CellId, PlacedTile> { return m_tiles; }
 
     static auto getPotentialNeighbors(CellId id) -> std::array<CellId, Tile::ROTATIONS>;
     static bool areNeighbors(CellId lhs, CellId rhs);
